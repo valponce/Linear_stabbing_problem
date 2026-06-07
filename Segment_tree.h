@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 #include <span>
+#include <limits>
 
 template <typename Value>
 
@@ -20,7 +21,7 @@ bool is_include(std::pair<Value,Value> I,std::pair<Value,Value> s){
 template <typename Value>
 bool intersect(std::pair<Value,Value> I,std::pair<Value,Value> s){
     // attention au interval ouvert à droite
-    if ((s.first<I.second && I.first <=s.first) || (s.second<I.second && I.first <=s.second)){
+    if (s.first<I.second && I.first <=s.second){
         return true;
     }
     else {return false;}
@@ -47,14 +48,19 @@ private:
         }
 
         void insert(std::pair<Value,Value> segment){
+            std::cout << "Interval: "<< _interval.first <<"," <<_interval.second <<"\n";
+            std::cout << "Segment: "<< segment.first <<"," <<segment.second <<"\n";
             if (is_include(_interval,segment)){
+                 std::cout << "Push\n"; 
                 _segments.push_back(segment);
             }
             else{
-                if(intersect(_left->_interval,segment)){
+                if(_left && intersect(_left->_interval,segment)){
+                    std::cout << "Left\n"; 
                     _left->insert(segment);
                 }
-                if(intersect(_right->_interval,segment)){
+                if(_right && intersect(_right->_interval,segment)){
+                    std::cout << "Right\n"; 
                     _right->insert(segment);
                 }
             }
@@ -62,10 +68,17 @@ private:
 
         int query(const Value& q){
             if(_interval.first<=q && q<_interval.second){
-                return _segments.size()+_left.query(q)+_right.query(q);
+                int res=_segments.size()+1;
+                if(_left){
+                    res+=_left->query(q);
+                }
+                if(_right){
+                    res+=_right->query(q);
+                }
+                return res;
             }
             else {
-                return 0;
+                return 1;
             }
         }
 
@@ -117,25 +130,19 @@ private:
         
     }
 
-    node* create_tree(std::span<node*> nodes){
+    node* create_tree(std::span<std::pair<Value,Value>> nodes){
         if(nodes.size()==1){
-            return new node({nodes[0]->_interval.first,nodes[0]->_interval.second});
+            return new node({nodes[0].first,nodes[0].second});
         }
         else{
             int n=nodes.size();
-            node* current=new node({nodes[0]->_interval.first,nodes[n-1]->_interval.second});
-            if ((n/2)%2==0){
-                std::span<node*> subleft(nodes.begin(), n/2);
-                std::span<node*> subright(nodes.begin()+n/2, n/2);
-                current->_left=create_tree(subleft);
-                current->_right=create_tree(subright);
-            }
-            else{
-                std::span<node*> subleft(nodes.begin(), n/2+1);
-                std::span<node*> subright(nodes.begin()+n/2, n/2-1);
-                current->_left=create_tree(subleft);
-                current->_right=create_tree(subright);
-            }
+            node* current=new node({nodes[0].first,nodes[n-1].second});
+            
+            std::span<std::pair<Value,Value>> subleft(nodes.begin(), n/2);
+            std::span<std::pair<Value,Value>> subright(nodes.begin()+n/2, n-n/2);
+            current->_left=create_tree(subleft);
+            current->_right=create_tree(subright);
+           
             return current; 
         }         
     }
@@ -160,14 +167,14 @@ public:
             auto last=std::unique(list.begin(),list.end());
             list.erase(last, list.end());
 
-            std::vector<node*> nodes;
+            std::vector<std::pair<Value,Value>> nodes;
             int m=list.size();
             for (int k=0; k<m-1;k++){
-                nodes.push_back(new node({list[k],list[k]}));
-                nodes.push_back(new node({list[k],list[k+1]}));
+                nodes.push_back({list[k],list[k]});
+                nodes.push_back({list[k],list[k+1]});
             }
-            nodes.push_back(new node({list[m-1],list[m-1]}));
-            nodes.push_back(new node({list[m-1],INFINITY}));
+            nodes.push_back({list[m-1],list[m-1]});
+            nodes.push_back({list[m-1],std::numeric_limits<Value>::max()});
             root=create_tree(nodes);
             insert_ST(intervals,n);
         }
