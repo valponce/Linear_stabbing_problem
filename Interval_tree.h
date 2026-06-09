@@ -15,6 +15,7 @@ private:
         std::vector<std::pair<Value,Value>> _right_endpoints;
         node* _left;
         node* _right;
+        int _size;
         
         node() : median(0),_left_endpoints({}), _right_endpoints({}), _left(nullptr), _right(nullptr) {}
         node(const Value& m,std::vector<Value> l_end, std::vector<Value> r_end ,node *left=nullptr,node *right=nullptr) :
@@ -39,11 +40,12 @@ private:
 
         int query(const Value& q){
             int op=0;
+            int m=_left_endpoints.size();
             if(q<median){
                 do{
                  op++;
                 }
-                while (_left_endpoints[op-1].first<=q);
+                while (op<m+1 && _left_endpoints[op-1].first<=q);
                 if (_left!=nullptr){
                     op+=_left->query(q);
                 } 
@@ -52,12 +54,26 @@ private:
                 do{
                  op++;
                 }
-                while (_right_endpoints[op-1].second>q);
+                while (op<m+1 && _right_endpoints[op-1].second>q);
                 if (_right!=nullptr){
                     op+=_right->query(q);
                 }
             }
-            return op;
+            else{
+                op+=m;
+            }
+            return op+1; // +1 for the visit of the node
+        }
+
+        int space(){
+            int s=2*_left_endpoints.size();
+            if(_left){
+                s+=_left->space();
+            }
+            if(_right){
+                s+=_right->space();
+            }
+            return s;
         }
 
     };
@@ -141,6 +157,7 @@ private:
         }
         
     }
+   
 
 public:
     Interval_tree(std::vector<Value> intervals){
@@ -154,6 +171,13 @@ public:
 
     ~Interval_tree() {
     delete root;
+    }
+
+    int space_IT(){
+        if(root==nullptr){return 0;}
+        else{
+            return root->space();
+        }
     }
 
     int query_IT(const Value& q){

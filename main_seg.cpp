@@ -9,6 +9,7 @@ int main(int argc, char* argv[]){
     }
     std::vector<int> intervals={1,6,3,20,3,7,5,17,10,20,13,15};
     Segment_tree ST(intervals);
+    std::cout << ST.space <<std::endl;
     std::cout << ST.query_IT(18) <<std::endl;
     ST.ExportToDot("segment_tree.txt");
 }
